@@ -47,6 +47,13 @@ interface Question {
   is_default: boolean;
 }
 
+interface RawQuestion {
+  question_text?: string;
+  pass_criteria?: string;
+  category?: string;
+  is_default?: boolean;
+}
+
 interface CandidateFields {
   name: string;
   email: string;
@@ -75,7 +82,7 @@ interface WizardState {
   candidate: CandidateFields;
   job: JobFields;
   questions: Question[];
-  rubric: any;
+  rubric: unknown;
 }
 
 interface EngageWizardModalProps {
@@ -86,7 +93,10 @@ interface EngageWizardModalProps {
   onSend: (payload: string) => Promise<void>;
   loading: boolean;
   error: string | null;
-  successData: any;
+  successData: {
+    success?: boolean;
+    data?: Array<{ interview_id?: string }>;
+  } | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -123,7 +133,7 @@ function parsePayload(raw: string): WizardState | null {
         recruiter_notes: jd.recruiter_notes || ctx.recruiter_notes || "",
         interview_duration: p.interview_duration || "15-20",
       },
-      questions: (jd.pre_screen_questions || []).map((q: any) => ({
+      questions: ((jd.pre_screen_questions || []) as RawQuestion[]).map((q) => ({
         question_text: q.question_text || "",
         pass_criteria: q.pass_criteria || "",
         category: q.category || "default",

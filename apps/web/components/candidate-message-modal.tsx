@@ -130,7 +130,7 @@ Recruiting Team`;
 
           <div className="text-xs text-muted-foreground">
             <p><strong>To:</strong> {candidateEmail}</p>
-            <p><strong>Subject:</strong> Exciting Opportunity - Let's Connect</p>
+            <p><strong>Subject:</strong> Exciting Opportunity - Let’s Connect</p>
           </div>
 
           <div className="flex justify-end space-x-3">

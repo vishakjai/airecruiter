@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Phone, Loader2, Check, Search, X as XIcon } from "lucide-react";
-import { API_BASE, authFetch } from "@/lib/api";
+import { API_BASE, authFetch, getErrorMessage } from "@/lib/api";
 import { logger } from "@/lib/logger";
 
 interface PhoneIndicatorProps {
@@ -21,6 +21,14 @@ interface PhoneIndicatorProps {
   /** Hard-disables the whole control (no popup, no lookup, no manual save).
    *  Used for no-contact company rows, where every action is blocked. */
   disabled?: boolean;
+}
+
+interface PhoneApiResponse {
+  detail?: string;
+  phone?: string;
+  mobilePhone?: string;
+  workPhone?: string;
+  provider?: string;
 }
 
 function countDigits(s: string) {
@@ -120,20 +128,21 @@ export function PhoneIndicator({
           },
         );
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
+          const body = (await res.json().catch(() => ({}))) as PhoneApiResponse;
           throw new Error(body?.detail || `Save failed (${res.status})`);
         }
-        const data = await res.json().catch(() => ({}));
+        const data = (await res.json().catch(() => ({}))) as PhoneApiResponse;
         if (data?.phone) normalised = data.phone;
       }
       onSaved(normalised);
       setOpen(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "Save failed");
       logger.error("phone_indicator.save.error", {
         candidateId,
-        message: e?.message,
+        message,
       });
-      setError(e?.message || "Save failed");
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -162,7 +171,7 @@ export function PhoneIndicator({
           source,
         }),
       });
-      const data = await res.json().catch(() => ({} as any));
+      const data = (await res.json().catch(() => ({}))) as PhoneApiResponse;
       if (!res.ok) throw new Error(data?.detail || `Lookup failed (${res.status})`);
 
       // `phone` is the endpoint's already-normalised primary pick; mobile/work
@@ -184,9 +193,10 @@ export function PhoneIndicator({
       // confirms with Save, matching how a manually typed number is handled.
       setValue(found);
       inputRef.current?.focus();
-    } catch (e: any) {
-      logger.error("phone_indicator.find.error", { candidateId, message: e?.message });
-      setError(e?.message || "Lookup failed");
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "Lookup failed");
+      logger.error("phone_indicator.find.error", { candidateId, message });
+      setError(message);
     } finally {
       setFinding(false);
     }

@@ -626,7 +626,7 @@ export default function CandidateEvaluationReportPage() {
                             {!scores.is_boolean_interview && a_text && (
                               <div className="space-y-1">
                                 <span className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Candidate Answer</span>
-                                <p className="text-[14px] text-[#334155] leading-relaxed italic">"{a_text}"</p>
+                                <p className="text-[14px] text-[#334155] leading-relaxed italic">&ldquo;{a_text}&rdquo;</p>
                               </div>
                             )}
                             {reason && (
@@ -941,5 +941,4 @@ function StatusPill({ status, type }: { status: string; type: "success" | "dange
     </span>
   );
 }
-
 

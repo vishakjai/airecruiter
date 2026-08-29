@@ -191,7 +191,7 @@ export function LaunchPairProgressModal({
   // re-launch PAIR for them manually via the API. One row per candidate,
   // self-contained (includes job id + failure reason).
   const downloadFailedCandidatesCsv = () => {
-    const escapeCSV = (val: any) => {
+    const escapeCSV = (val: unknown) => {
       const str = val === null || val === undefined ? "" : String(val);
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`

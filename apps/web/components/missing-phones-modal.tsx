@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { API_BASE, authFetch } from "@/lib/api";
+import { API_BASE, authFetch, getErrorMessage } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { logStep } from "@/lib/newrelic";
 import { useMsal } from "@azure/msal-react";
@@ -103,16 +103,17 @@ export function MissingPhonesModal({
         body: JSON.stringify({ phone, jobdiva_id: cand.jobdiva_id }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
         const msg = body?.detail || `Save failed (${res.status})`;
         setErrors((prev) => ({ ...prev, [cand.candidate_id]: String(msg) }));
         return false;
       }
       setSavedAt((prev) => ({ ...prev, [cand.candidate_id]: Date.now() }));
       return true;
-    } catch (e: any) {
-      logger.error("missing_phones.save.error", { candidateId: cand.candidate_id, message: e?.message });
-      setErrors((prev) => ({ ...prev, [cand.candidate_id]: e?.message || "Save failed" }));
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "Save failed");
+      logger.error("missing_phones.save.error", { candidateId: cand.candidate_id, message });
+      setErrors((prev) => ({ ...prev, [cand.candidate_id]: message }));
       return false;
     } finally {
       setSaving((prev) => ({ ...prev, [cand.candidate_id]: false }));

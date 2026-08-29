@@ -49,6 +49,10 @@ export type SendBulkInterviewResult = {
   skipped_already_sent?: string[];
 };
 
+type SendBulkInterviewResponse = SendBulkInterviewResult & {
+  detail?: string;
+};
+
 export type LatestInterviewResult = {
   success: boolean;
   interview_id?: string;
@@ -139,7 +143,7 @@ export function useEngagementFlow() {
         app_base_url: input.appBaseUrl || (typeof window !== "undefined" ? window.location.origin : ""),
       }),
     });
-    let data: any = null;
+    let data: SendBulkInterviewResponse;
     try {
       data = await res.json();
     } catch {
@@ -147,12 +151,12 @@ export function useEngagementFlow() {
     }
     
     if (!res.ok) {
-      const errorMsg = data?.message || (typeof data?.detail === 'string' ? data.detail : "API request failed");
+      const errorMsg = data.message || data.detail || "API request failed";
       logger.error("engagement.send_bulk.failed", { status: res.status, message: errorMsg });
       // Ensure we return an object even on error
-      return (data || { success: false, message: errorMsg }) as SendBulkInterviewResult;
+      return data;
     }
-    return (data || { success: true, message: "Success" }) as SendBulkInterviewResult;
+    return data;
   }
 
   // Single-call launch. POSTs candidate IDs to /engage/launch and streams

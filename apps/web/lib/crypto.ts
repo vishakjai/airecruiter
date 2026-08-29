@@ -19,11 +19,17 @@ function base64ToBytes(base64: string): Uint8Array {
     return bytes;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return copy.buffer;
+}
+
 // PBKDF2 using Web Crypto API
 async function deriveKey(baseKey: Uint8Array, salt: Uint8Array): Promise<CryptoKey> {
     const importedKey = await crypto.subtle.importKey(
         'raw',
-        baseKey as any,
+        toArrayBuffer(baseKey),
         { name: 'PBKDF2' },
         false,
         ['deriveBits', 'deriveKey']
@@ -32,7 +38,7 @@ async function deriveKey(baseKey: Uint8Array, salt: Uint8Array): Promise<CryptoK
     return await crypto.subtle.deriveKey(
         {
             name: 'PBKDF2',
-            salt: salt as any,
+            salt: toArrayBuffer(salt),
             iterations: 100000,
             hash: 'SHA-256'
         },
@@ -83,10 +89,10 @@ export async function decryptField(encryptedValue: string): Promise<string> {
         const plaintext = await crypto.subtle.decrypt(
             {
                 name: 'AES-GCM',
-                iv: iv as any
+                iv: toArrayBuffer(iv)
             },
             derivedKey,
-            ciphertextWithTag as any
+            toArrayBuffer(ciphertextWithTag)
         );
 
         // Convert ArrayBuffer to string

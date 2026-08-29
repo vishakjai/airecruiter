@@ -232,7 +232,7 @@ function cleanJobTitleForIntro(title: string): string {
 
 function cleanLocationForIntro(location: string, fallback: string = "your area"): string {
   if (!location) return fallback;
-  let cleaned = location.replace(/\b(?:remote|onsite|on-site|hybrid|wfh)\b/gi, "").replace(/\(\s*\)/g, "").replace(/\s{2,}/g, " ").replace(/^[,/\s]+|[,/\s]+$/g, "").trim();
+  const cleaned = location.replace(/\b(?:remote|onsite|on-site|hybrid|wfh)\b/gi, "").replace(/\(\s*\)/g, "").replace(/\s{2,}/g, " ").replace(/^[,/\s]+|[,/\s]+$/g, "").trim();
   return cleaned || fallback;
 }
 
@@ -3425,7 +3425,7 @@ function NewJobPageContent() {
                   )}
                 </div>
                 {isInputInvalid && <p className="text-[11px] text-red-500 mt-1">{emailErrorMessage}</p>}
-                <p className="text-[12px] text-slate-500 mt-1.5">Press comma, semicolon, or Enter to add. You'll receive notifications for this job.</p>
+                <p className="text-[12px] text-slate-500 mt-1.5">Press comma, semicolon, or Enter to add. You’ll receive notifications for this job.</p>
               </div>
 
               {/* Screening Level */}
@@ -3622,8 +3622,8 @@ function NewJobPageContent() {
                     <div>
                       <h4 className="text-[17px] font-bold text-slate-900">No AI Description Yet</h4>
                       <p className="text-[14px] text-slate-500 mt-2 leading-relaxed">
-                        This job doesn't have an AI-enhanced description. Click the
-                        <strong> "Regenerate"</strong> button above to generate one now.
+                        This job doesn’t have an AI-enhanced description. Click the
+                        <strong> &ldquo;Regenerate&rdquo;</strong> button above to generate one now.
                       </p>
                     </div>
                     <Button
@@ -4206,9 +4206,9 @@ function NewJobPageContent() {
                     >
                       <option value="No requirement">No requirement</option>
                       <option value="High School / GED">High School / GED</option>
-                      <option value="Associate's degree">Associate's degree</option>
-                      <option value="Bachelor's degree">Bachelor's degree</option>
-                      <option value="Master's degree">Master's degree</option>
+                      <option value="Associate's degree">Associate’s degree</option>
+                      <option value="Bachelor's degree">Bachelor’s degree</option>
+                      <option value="Master's degree">Master’s degree</option>
                       <option value="PhD or equivalent">PhD or equivalent</option>
                       <option value="Certification / License">Certification / License</option>
                     </select>

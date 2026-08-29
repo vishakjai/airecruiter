@@ -54,6 +54,10 @@ interface AICheckReport {
     };
 }
 
+interface AICheckErrorResponse {
+    detail?: string;
+}
+
 interface BooleanResult {
     status: string;
     boolean_string: string;
@@ -656,15 +660,16 @@ function AICheckMode() {
             const res = await authFetch(`${apiBase}/tira/ai-check`, { method: "POST", body: fd });
             // A proxy error (e.g. 413 for an oversized batch) returns an HTML
             // body — don't let the JSON parse failure mask the real cause.
-            let data: any = null;
+            let data: AICheckReport | AICheckErrorResponse | null = null;
             try {
                 data = await res.json();
             } catch {
                 /* non-JSON body */
             }
             if (!res.ok || !data) {
+                const detail = data && "detail" in data ? data.detail : undefined;
                 throw new Error(
-                    data?.detail
+                    detail
                         || (res.status === 413
                             ? "Upload too large — remove some files and try again."
                             : `Failed (${res.status})`),

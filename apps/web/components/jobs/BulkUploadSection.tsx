@@ -38,7 +38,7 @@ export function BulkUploadSection({
       <div className="flex items-center gap-2 mb-3">
         <FileInput className="w-4 h-4 text-[#6366f1]" />
         <h3 className="text-[13.5px] font-bold text-slate-800">Upload Resumes</h3>
-        <span className="text-[11px] text-slate-500 font-medium">PDF, DOCX, or TXT — scored against this job's rubric</span>
+        <span className="text-[11px] text-slate-500 font-medium">PDF, DOCX, or TXT — scored against this job’s rubric</span>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <input

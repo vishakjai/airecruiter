@@ -48,6 +48,39 @@ interface Job {
   timeToFirstPass: number;
 }
 
+interface MonitoredJobDetails {
+  status?: string;
+  processing_status?: string;
+  pair_status?: string;
+  jobdiva_id?: string;
+  enhanced_title?: string;
+  title?: string;
+  customer_name?: string;
+  screening_level?: string;
+  recruiter_emails?: string[];
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  priority?: string;
+  program_duration?: string;
+  duration?: string;
+  max_allowed_submittals?: string;
+  pair_launched_at?: string | null;
+  created_at?: string;
+  candidates_launched?: number;
+  complete_submissions?: number;
+  pass_submissions?: number;
+  pair_submits?: number;
+  pair_external_subs?: number;
+  feedback_completed?: number;
+  time_to_first_pass?: string | number;
+}
+
+interface MonitoredJobsResponse {
+  source?: string;
+  jobs?: Record<string, MonitoredJobDetails>;
+}
+
 type SortField = keyof Job;
 type SortDirection = "asc" | "desc";
 
@@ -207,7 +240,7 @@ export default function DashboardPage() {
         const text = await response.text().catch(() => "");
         throw new Error(`${response.status} /jobs/monitored${text ? `: ${text}` : ""}`);
       }
-      const data = await response.json();
+      const data = (await response.json()) as MonitoredJobsResponse;
 
       // A silent refresh must never blank a table the user is reading. The
       // backend answers 200 with `source: "error"` and an empty job map
@@ -225,7 +258,7 @@ export default function DashboardPage() {
       // Object.entries order, since JS engines iterate numeric-string keys
       // in ascending numeric order (not insertion order), which would break
       // the backend's created_at DESC ordering for numeric jobdiva IDs.
-      const jobs: Job[] = Object.entries(data.jobs || {}).map(([id, details]: [string, any]) => {
+      const jobs: Job[] = Object.entries(data.jobs || {}).map(([id, details]) => {
         const status = details.status || "Open";
         const procStatus = details.processing_status || "pending";
 
@@ -246,7 +279,7 @@ export default function DashboardPage() {
           priority: (!details.priority || details.priority === "[null]") ? "—" : details.priority,
           programDuration: (!details.program_duration && !details.duration) || details.program_duration === "[null]" || details.duration === "[null]"
             ? "—"
-            : details.program_duration || details.duration,
+            : details.program_duration || details.duration || "—",
           maxAllowedSubmittals: (!details.max_allowed_submittals || details.max_allowed_submittals === "[null]" || Number.isNaN(Number.parseInt(details.max_allowed_submittals, 10)))
             ? "—"
             : Number.parseInt(details.max_allowed_submittals, 10).toString(),
@@ -259,7 +292,7 @@ export default function DashboardPage() {
           pairSubmits: details.pair_submits || 0,
           pairExternalSubs: details.pair_external_subs || 0,
           feedbackCompleted: details.feedback_completed || 0,
-          timeToFirstPass: parseFloat(details.time_to_first_pass) || 0,
+          timeToFirstPass: Number.parseFloat(String(details.time_to_first_pass ?? "")) || 0,
         };
       }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
@@ -339,7 +372,7 @@ export default function DashboardPage() {
       "Feedback Completed",
       "Time to First Pass",
     ];
-    const escapeCSV = (val: any) => {
+    const escapeCSV = (val: unknown) => {
       const str = val === null || val === undefined ? "" : String(val);
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`

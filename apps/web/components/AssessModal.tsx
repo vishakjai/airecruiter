@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE, authFetch } from "@/lib/api";
+import { API_BASE, authFetch, getErrorMessage } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -36,11 +36,68 @@ interface AssessModalProps {
   candidateName: string;
 }
 
+interface InterviewAssessment {
+  status?: string;
+  overall_score?: number | null;
+  questions_completed?: number;
+  total_questions?: number;
+  role_position?: string;
+  person_name?: string;
+  person_email?: string;
+  person_phone?: string;
+  created_at?: string;
+}
+
+interface EvaluationQuestion {
+  question_id?: string;
+  category?: string;
+  question?: string;
+  score: number;
+  max_score?: number;
+  answer?: string;
+  feedback?: string;
+}
+
+interface EvaluationSummary {
+  questions_completed?: number;
+  total_questions?: number;
+  average_score?: number;
+  overall_score?: number;
+}
+
+interface InterviewEvaluation {
+  summary?: EvaluationSummary;
+  questions?: EvaluationQuestion[];
+}
+
+interface TranscriptionMessage {
+  id?: string;
+  speaker_type?: string;
+  message_text?: string;
+  timestamp?: string;
+}
+
+interface OutreachCommunication {
+  status?: string;
+  channel?: string;
+  step?: string;
+  phase?: string;
+  sent_at?: string;
+}
+
+interface OutreachData {
+  outreach?: {
+    outreach_phase?: string;
+    outreach_status?: string;
+  };
+  communications?: OutreachCommunication[];
+}
+
 interface AssessmentData {
-  interview: any;
-  evaluation: any;
-  transcriptions: any[];
-  outreach: any;
+  interview: InterviewAssessment | null;
+  evaluation: InterviewEvaluation | null;
+  transcriptions: TranscriptionMessage[];
+  outreach: OutreachData | null;
 }
 
 export function AssessModal({
@@ -73,15 +130,15 @@ export function AssessModal({
         `${API_BASE}/api/v1/engagement/assess/${interviewId}`
       );
       if (!response.ok) throw new Error("Failed to fetch assessment data");
-      const result = await response.json();
+      const result = (await response.json()) as Partial<AssessmentData>;
       setData({
-        interview: result.interview,
-        evaluation: result.evaluation,
+        interview: result.interview ?? null,
+        evaluation: result.evaluation ?? null,
         transcriptions: result.transcriptions || [],
-        outreach: result.outreach,
+        outreach: result.outreach ?? null,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to load assessment");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load assessment"));
     } finally {
       setLoading(false);
     }
@@ -397,7 +454,7 @@ export function AssessModal({
 
                   {/* Questions list */}
                   {data.evaluation?.questions?.map(
-                    (q: any, idx: number) => (
+                    (q, idx) => (
                       <div
                         key={q.question_id || idx}
                         className="bg-white border border-slate-200 rounded-xl p-4 space-y-3"
@@ -506,7 +563,7 @@ export function AssessModal({
               <ScrollArea className="h-[500px] pr-3">
                 <div className="space-y-3 pt-4">
                   {data.transcriptions.length > 0 ? (
-                    data.transcriptions.map((msg: any, idx: number) => (
+                    data.transcriptions.map((msg, idx) => (
                       <div
                         key={msg.id || idx}
                         className={`flex gap-3 ${
@@ -609,7 +666,7 @@ export function AssessModal({
                               <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-slate-200" />
 
                               {data.outreach.communications.map(
-                                (comm: any, idx: number) => (
+                                (comm, idx) => (
                                   <div
                                     key={idx}
                                     className="flex items-start gap-3 relative"

@@ -354,7 +354,7 @@ export default function CampaignDetailPage() {
                   <span className="text-[10px] font-normal lowercase">(blank = informational only)</span>
                 </div>
               </div>
-              {(campaign.template_screen_questions as any[]).map((q: any, idx: number) => (
+              {campaign.template_screen_questions.map((q, idx) => (
                 <div
                   key={idx}
                   className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-b-0"

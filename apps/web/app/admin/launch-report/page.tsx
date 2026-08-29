@@ -326,7 +326,7 @@ export default function LaunchReportPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await api.launchReport.get(date);
+        const res = await api.launchReport.get<LaunchReportData>(date);
         if (cancelled) return;
         setData(res?.data ?? null);
         setError(null);

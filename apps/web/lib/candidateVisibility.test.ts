@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   candidateHiddenReason,
   hiddenBreakdown,
+  type VisibilityCandidate,
   type VisibilityContext,
 } from "./candidateVisibility.ts";
 
@@ -12,9 +13,9 @@ const baseCtx = (over: Partial<VisibilityContext> = {}): VisibilityContext => ({
   launchedIds: new Set<string>(),
   isExcluded: () => false,
   minScore: 0,
-  getScore: (c: any) => Number(c.match_score ?? 0),
+  getScore: (c: VisibilityCandidate) => Number(c.match_score ?? 0),
   locationFilter: new Set<string>(),
-  getLocation: (c: any) => String(c.location || ""),
+  getLocation: (c: VisibilityCandidate) => String(c.location || ""),
   searchQuery: "",
   ...over,
 });
@@ -165,7 +166,7 @@ test("breakdown categories are disjoint and sum with visible rows to the bucket"
   ];
   const ctx = baseCtx({
     launchedIds: new Set(["L1"]),
-    isExcluded: (c: any) => c.candidate_id === "E1",
+    isExcluded: (c: VisibilityCandidate) => c.candidate_id === "E1",
     minScore: 60,
   });
   const b = hiddenBreakdown(rows, ctx);

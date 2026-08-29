@@ -23,7 +23,11 @@ import {
   ChevronRight,
   Info
 } from "lucide-react";
-import { api } from "@/lib/api";
+import {
+  api,
+  getErrorMessage,
+  type ActivityLogApiItem,
+} from "@/lib/api";
 import { shouldShowQuestionsCompleted } from "@/lib/activityTimeline";
 
 import { normalizeToUtcDate } from "@/lib/date";
@@ -42,19 +46,13 @@ const formatActivityDate = (dateString: string) => {
       hour12: true,
       timeZoneName: "short",
     }).format(date);
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };
 
-interface ActivityLog {
-  id: number;
-  phase: string;
-  activity_type: string;
-  activity_subtype?: string;
-  status: string;
-  details?: any;
-  timestamp: string;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 interface UserActivityLogModalProps {
@@ -70,17 +68,20 @@ export function UserActivityLogModal({
   interviewId,
   candidateName,
 }: UserActivityLogModalProps) {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [logs, setLogs] = useState<ActivityLogApiItem[]>([]);
   const [resolvedQuestionsCompleted, setResolvedQuestionsCompleted] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const extractQuestionsCompleted = (payload: any): number | null => {
-    const data = payload?.data ?? payload;
+  const extractQuestionsCompleted = (payload: unknown): number | null => {
+    if (!isRecord(payload)) return null;
+    const data = isRecord(payload.data) ? payload.data : payload;
+    const summary = isRecord(data.summary) ? data.summary : null;
+    const interview = isRecord(data.interview) ? data.interview : null;
     const candidateValues = [
-      data?.summary?.questions_completed,
-      data?.questions_completed,
-      data?.interview?.questions_completed,
+      summary?.questions_completed,
+      data.questions_completed,
+      interview?.questions_completed,
     ];
     for (const value of candidateValues) {
       if (typeof value === "number" && Number.isFinite(value)) {
@@ -121,7 +122,11 @@ export function UserActivityLogModal({
           : (typeof fromScoreSummary === "number" ? fromScoreSummary : null)
       );
 
-      if (activityResult.status === "fulfilled" && activityResult.value.success) {
+      if (
+        activityResult.status === "fulfilled" &&
+        activityResult.value.success &&
+        activityResult.value.data
+      ) {
         setLogs(activityResult.value.data.activities || []);
       } else {
         const activityError =
@@ -130,8 +135,8 @@ export function UserActivityLogModal({
             : null;
         setError(activityError || "Failed to load activity logs");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred while fetching activity logs");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "An error occurred while fetching activity logs"));
     } finally {
       setLoading(false);
     }
@@ -359,8 +364,8 @@ export function UserActivityLogModal({
                                 Call status: {log.details.status.replace(/_/g, " ")}
                               </p>
                             )}
-                            {log.details.message && <p className="italic text-slate-500">"{log.details.message.substring(0, 150)}{log.details.message.length > 150 ? '...' : ''}"</p>}
-                            {log.details.content && <p className="italic text-slate-500">"{log.details.content.substring(0, 150)}{log.details.content.length > 150 ? '...' : ''}"</p>}
+                            {log.details.message && <p className="italic text-slate-500">&ldquo;{log.details.message.substring(0, 150)}{log.details.message.length > 150 ? '...' : ''}&rdquo;</p>}
+                            {log.details.content && <p className="italic text-slate-500">&ldquo;{log.details.content.substring(0, 150)}{log.details.content.length > 150 ? '...' : ''}&rdquo;</p>}
                             {log.details.phone_number && <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" /> {log.details.phone_number}</p>}
                             {log.details.error && <p className="text-rose-500 mt-1 bg-rose-50/50 p-2 rounded-lg border border-rose-100/50 text-xs font-semibold">{log.details.error}</p>}
                           </div>

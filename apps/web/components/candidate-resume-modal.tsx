@@ -211,7 +211,7 @@ export function CandidateResumeModal({
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">No Resume Available</h3>
                 <p className="text-gray-500 mb-4">
-                  This candidate hasn't uploaded a resume yet.
+                  This candidate hasn’t uploaded a resume yet.
                 </p>
                 <div className="text-sm text-gray-400">
                   Contact information and basic details are available above.

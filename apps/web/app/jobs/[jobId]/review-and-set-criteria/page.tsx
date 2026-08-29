@@ -45,8 +45,10 @@ export default function SetCriteriaPage() {
     try {
       const response = await authFetch(`${API_BASE}/api/jobs/${jobId}/criteria`);
       if (response.ok) {
-        const data = await response.json();
-        const sortedCriteria = (data.criteria || []).sort((a: any, b: any) => (b.priority_score || 0) - (a.priority_score || 0));
+        const data = (await response.json()) as { criteria?: Criterion[] };
+        const sortedCriteria = (data.criteria ?? []).sort(
+          (a, b) => (b.priority_score || 0) - (a.priority_score || 0),
+        );
         setCriteria(sortedCriteria);
         // If empty, auto-sync once
         if (sortedCriteria.length === 0 && !syncing && !hasSyncedRef.current) {
@@ -68,8 +70,10 @@ export default function SetCriteriaPage() {
         method: 'POST'
       });
       if (response.ok) {
-        const data = await response.json();
-        const sorted = (data.criteria || []).sort((a: any, b: any) => (b.priority_score || 0) - (a.priority_score || 0));
+        const data = (await response.json()) as { criteria?: Criterion[] };
+        const sorted = (data.criteria ?? []).sort(
+          (a, b) => (b.priority_score || 0) - (a.priority_score || 0),
+        );
         setCriteria(sorted);
         console.log("Criteria pre-populated by AI");
       }

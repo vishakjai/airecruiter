@@ -7,7 +7,49 @@ import { SkillRow } from "./skill-row";
 import { cn } from "@/lib/utils";
 
 interface AnalysisCardProps {
-    result: any; // Using any for flexibility with backend payload
+    result: AnalysisResult | null;
+}
+
+interface AnalysisSignal {
+    type: string;
+    evidence_snippet: string;
+}
+
+interface TechnicalTrace {
+    priority: "required" | "preferred";
+    skill_slug: string;
+    score: number;
+    status: "matched" | "missing" | "partial";
+    seniority_level?: string;
+}
+
+interface AnalysisSection {
+    title: string;
+    status: string;
+    summary: string;
+    details?: string[];
+}
+
+interface TribunalVerdict {
+    narrative_tag?: string;
+    skeptic_summary?: string;
+    advocate_summary?: string;
+    trajectory_analysis?: {
+        direction?: string;
+        reasoning?: string;
+    };
+    consensus_flags?: AnalysisSignal[];
+    consensus_strengths?: AnalysisSignal[];
+}
+
+interface AnalysisResult {
+    score: number;
+    candidate_name?: string;
+    candidate_id?: string;
+    tribunal_status?: string;
+    tribunal_verdict?: TribunalVerdict;
+    technical_trace?: TechnicalTrace[];
+    analysis?: AnalysisSection[];
 }
 
 export function AnalysisCard({ result }: AnalysisCardProps) {
@@ -16,8 +58,8 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
     const { score, tribunal_verdict, technical_trace, analysis, tribunal_status } = result;
 
     // Derive Trace Lists
-    const requiredSkills = technical_trace?.filter((t: any) => t.priority === "required") || [];
-    const preferredSkills = technical_trace?.filter((t: any) => t.priority === "preferred") || [];
+    const requiredSkills = technical_trace?.filter((t) => t.priority === "required") || [];
+    const preferredSkills = technical_trace?.filter((t) => t.priority === "preferred") || [];
 
     return (
         <div className="h-full flex flex-col bg-background text-foreground">
@@ -117,7 +159,7 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                                     {tribunal_verdict.trajectory_analysis?.direction}
                                                 </Badge>
                                                 <p className="text-muted-foreground text-sm italic">
-                                                    "{tribunal_verdict.trajectory_analysis?.reasoning}"
+                                                    &ldquo;{tribunal_verdict.trajectory_analysis?.reasoning}&rdquo;
                                                 </p>
                                             </div>
                                         </CardContent>
@@ -128,12 +170,12 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                         <div className="space-y-3">
                                             <h4 className="text-xs font-bold text-muted-foreground uppercase">Risk Signals</h4>
                                             {tribunal_verdict.consensus_flags?.length === 0 && <span className="text-muted-foreground block italic">None detected</span>}
-                                            {tribunal_verdict.consensus_flags?.map((flag: any, i: number) => (
+                                            {tribunal_verdict.consensus_flags?.map((flag, i) => (
                                                 <div key={i} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/10 p-3 rounded-md flex gap-3 text-rose-700 dark:text-rose-300">
                                                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                                                     <div>
                                                         <div className="font-semibold capitalize mb-1">{flag.type.replace(/_/g, " ")}</div>
-                                                        <div className="opacity-80 text-xs">"{flag.evidence_snippet}"</div>
+                                                        <div className="opacity-80 text-xs">&ldquo;{flag.evidence_snippet}&rdquo;</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -142,12 +184,12 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                         <div className="space-y-3">
                                             <h4 className="text-xs font-bold text-muted-foreground uppercase">Growth Signals</h4>
                                             {tribunal_verdict.consensus_strengths?.length === 0 && <span className="text-muted-foreground block italic">None detected</span>}
-                                            {tribunal_verdict.consensus_strengths?.map((strength: any, i: number) => (
+                                            {tribunal_verdict.consensus_strengths?.map((strength, i) => (
                                                 <div key={i} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/10 p-3 rounded-md flex gap-3 text-emerald-700 dark:text-emerald-300">
                                                     <BadgeCheck className="w-4 h-4 shrink-0 mt-0.5" />
                                                     <div>
                                                         <div className="font-semibold capitalize mb-1">{strength.type.replace(/_/g, " ")}</div>
-                                                        <div className="opacity-80 text-xs">"{strength.evidence_snippet}"</div>
+                                                        <div className="opacity-80 text-xs">&ldquo;{strength.evidence_snippet}&rdquo;</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -164,7 +206,7 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                     Required Skills
                                 </h3>
                                 {requiredSkills.length === 0 && <p className="text-muted-foreground italic">No required skills listed.</p>}
-                                {requiredSkills.map((trace: any) => (
+                                {requiredSkills.map((trace) => (
                                     <SkillRow
                                         key={trace.skill_slug}
                                         slug={trace.skill_slug}
@@ -181,7 +223,7 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                     Preferred Skills
                                 </h3>
                                 {preferredSkills.length === 0 && <p className="text-muted-foreground italic">No preferred skills listed.</p>}
-                                {preferredSkills.map((trace: any) => (
+                                {preferredSkills.map((trace) => (
                                     <SkillRow
                                         key={trace.skill_slug}
                                         slug={trace.skill_slug}
@@ -196,7 +238,7 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
 
                         {/* FACTORS TAB */}
                         <TabsContent value="factors" className="mt-0 space-y-4">
-                            {analysis?.map((sec: any, i: number) => (
+                            {analysis?.map((sec, i) => (
                                 <Card key={i} className="bg-card border-border">
                                     <CardHeader className="py-4">
                                         <div className="flex items-center justify-between">
@@ -211,10 +253,10 @@ export function AnalysisCard({ result }: AnalysisCardProps) {
                                         </div>
                                         <CardDescription className="text-muted-foreground">{sec.summary}</CardDescription>
                                     </CardHeader>
-                                    {sec.details?.length > 0 && (
+                                    {(sec.details?.length ?? 0) > 0 && (
                                         <CardContent className="pt-0 pb-4">
                                             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                                {sec.details.map((d: string, idx: number) => (
+                                                {sec.details?.map((d, idx) => (
                                                     <li key={idx}>{d}</li>
                                                 ))}
                                             </ul>

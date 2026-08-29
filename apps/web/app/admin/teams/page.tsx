@@ -14,7 +14,7 @@ import {
   Crown,
   LayoutDashboard,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,15 +77,15 @@ export default function AdminTeamsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.teams.list();
+      const res = await api.teams.list<Team>();
       if (res && res.status === "success" && res.data?.teams) {
-        setTeams(res.data.teams as Team[]);
+        setTeams(res.data.teams);
       } else {
         setError(res?.message || "Failed to load teams.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading teams:", err);
-      setError(err?.message || "Access denied or server error loading teams.");
+      setError(getErrorMessage(err, "Access denied or server error loading teams."));
     } finally {
       setIsLoading(false);
     }
@@ -141,11 +141,11 @@ export default function AdminTeamsPage() {
       } else {
         setFormError(res?.message || "Failed to save the team.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Surface the backend's validation detail (duplicate name, email
       // already in another team, malformed email...) instead of a generic
       // failure — the raw error looks like: 400 /api/v1/teams: {"detail": "..."}
-      const raw = err?.message || "";
+      const raw = getErrorMessage(err, "");
       const match = raw.match(/"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
       setFormError(match ? match[1] : raw || "Failed to save the team.");
     } finally {
@@ -160,9 +160,9 @@ export default function AdminTeamsPage() {
       await api.teams.remove(deletingTeam.id);
       setDeletingTeam(null);
       await fetchTeams();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error deleting team:", err);
-      setError(err?.message || "Failed to delete the team.");
+      setError(getErrorMessage(err, "Failed to delete the team."));
       setDeletingTeam(null);
     } finally {
       setIsDeleting(false);

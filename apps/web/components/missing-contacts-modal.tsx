@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { API_BASE, authFetch } from "@/lib/api";
+import { API_BASE, authFetch, getErrorMessage } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { logStep } from "@/lib/newrelic";
 import { useMsal } from "@azure/msal-react";
@@ -54,6 +54,13 @@ interface MissingContactsModalProps {
   allowPartial?: boolean;
   jobId?: string;
   jobDivaId?: string;
+}
+
+interface ContactUpdate {
+  candidate_id: string;
+  jobdiva_id?: string;
+  phone?: string;
+  email?: string;
 }
 
 function countDigits(s: string) {
@@ -208,19 +215,20 @@ export function MissingContactsModal({
         },
       );
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
         const msg = body?.detail || `Save failed (${res.status})`;
         setPhoneErrors(prev => ({ ...prev, [cand.candidate_id]: String(msg) }));
         return false;
       }
       setPhoneSavedAt(prev => ({ ...prev, [cand.candidate_id]: Date.now() }));
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "Save failed");
       logger.error("missing_contacts.phone.save.error", {
         candidateId: cand.candidate_id,
-        message: e?.message,
+        message,
       });
-      setPhoneErrors(prev => ({ ...prev, [cand.candidate_id]: e?.message || "Save failed" }));
+      setPhoneErrors(prev => ({ ...prev, [cand.candidate_id]: message }));
       return false;
     } finally {
       setSavingPhone(prev => ({ ...prev, [cand.candidate_id]: false }));
@@ -247,19 +255,20 @@ export function MissingContactsModal({
         },
       );
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
         const msg = body?.detail || `Save failed (${res.status})`;
         setEmailErrors(prev => ({ ...prev, [cand.candidate_id]: String(msg) }));
         return false;
       }
       setEmailSavedAt(prev => ({ ...prev, [cand.candidate_id]: Date.now() }));
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "Save failed");
       logger.error("missing_contacts.email.save.error", {
         candidateId: cand.candidate_id,
-        message: e?.message,
+        message,
       });
-      setEmailErrors(prev => ({ ...prev, [cand.candidate_id]: e?.message || "Save failed" }));
+      setEmailErrors(prev => ({ ...prev, [cand.candidate_id]: message }));
       return false;
     } finally {
       setSavingEmail(prev => ({ ...prev, [cand.candidate_id]: false }));
@@ -274,7 +283,7 @@ export function MissingContactsModal({
     // Gather whichever unique, well-formed contact methods are filled in, and
     // only block a candidate when neither is provided. We collect the saved
     // values up front so the same set drives the PATCH and the launch overrides.
-    const updates: any[] = [];
+    const updates: ContactUpdate[] = [];
     const provided: Record<string, { phone?: string; email?: string }> = {};
     for (const c of candidates) {
       const phone = (phones[c.candidate_id] || "").trim();
@@ -295,7 +304,7 @@ export function MissingContactsModal({
         return;
       }
 
-      const item: any = { candidate_id: c.candidate_id, jobdiva_id: c.jobdiva_id };
+      const item: ContactUpdate = { candidate_id: c.candidate_id, jobdiva_id: c.jobdiva_id };
       const entry: { phone?: string; email?: string } = {};
       if (phoneUsable) {
         item.phone = phone;
@@ -329,7 +338,7 @@ export function MissingContactsModal({
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
         const msg = body?.detail || `Bulk save failed (${res.status})`;
         if (candidates.length > 0) {
            setPhoneErrors(prev => ({ ...prev, [candidates[0].candidate_id]: String(msg) }));
@@ -342,8 +351,10 @@ export function MissingContactsModal({
         if (item.email) setEmailSavedAt(prev => ({ ...prev, [item.candidate_id]: Date.now() }));
       }
       onAllProvided(provided);
-    } catch (e: any) {
-      logger.error("missing_contacts.bulk.save.error", { message: e?.message });
+    } catch (e: unknown) {
+      logger.error("missing_contacts.bulk.save.error", {
+        message: getErrorMessage(e, "Failed to save contacts"),
+      });
       if (candidates.length > 0) {
          setPhoneErrors(prev => ({ ...prev, [candidates[0].candidate_id]: "Failed to save contacts. Please try again." }));
       }

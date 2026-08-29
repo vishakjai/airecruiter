@@ -5,25 +5,43 @@
 
 export type HiddenReason = "launched" | "excluded" | "filtered";
 
+export type VisibilityCandidate = {
+  candidate_id?: string | number | null;
+  jobdiva_candidate_id?: string | number | null;
+  id?: string | number | null;
+  source?: string | null;
+  match_score?: number | null;
+  detail_failed?: boolean;
+  _stage?: string;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  title?: string | null;
+  headline?: string | null;
+  location?: string | null;
+};
+
 export type VisibilityContext = {
   // Composite `${source}:${candidate_id}` keys plus bare candidate_ids of
   // rows already saved for this job (the rank list hides them from Step 5).
   launchedKeys: ReadonlySet<string>;
   launchedIds: ReadonlySet<string>;
   // Non-empty exclusion reason (client employee / offer status) hides a row.
-  isExcluded: (candidate: any) => boolean;
+  isExcluded: (candidate: VisibilityCandidate) => boolean;
   // 0 disables the min-score filter.
   minScore: number;
-  getScore: (candidate: any) => number;
+  getScore: (candidate: VisibilityCandidate) => number;
   // Empty set disables the location filter.
   locationFilter: ReadonlySet<string>;
-  getLocation: (candidate: any) => string;
+  getLocation: (candidate: VisibilityCandidate) => string;
   // Raw text-box value; trimmed/lowercased here.
   searchQuery: string;
 };
 
 export function candidateHiddenReason(
-  c: any,
+  c: VisibilityCandidate,
   ctx: VisibilityContext
 ): HiddenReason | null {
   const candId = c.candidate_id || c.jobdiva_candidate_id || c.id;
@@ -88,7 +106,7 @@ export type HiddenBreakdown = {
 // same precedence as candidateHiddenReason (launched > excluded > filtered),
 // so bucket === launched + excluded + filtered + visible.
 export function hiddenBreakdown(
-  bucket: readonly any[],
+  bucket: readonly VisibilityCandidate[],
   ctx: VisibilityContext
 ): HiddenBreakdown {
   let launched = 0;

@@ -6,8 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EngageWizardModal } from "@/components/EngageWizardModal";
 import { AssessModal } from "@/components/AssessModal";
-import { useEngagementFlow } from "@/hooks/use-engagement-flow";
-import { API_BASE, authFetch } from "@/lib/api";
+import {
+  type SendBulkInterviewResult,
+  useEngagementFlow,
+} from "@/hooks/use-engagement-flow";
+import { API_BASE, authFetch, getErrorMessage } from "@/lib/api";
 
 import {
   ArrowLeft,
@@ -71,7 +74,7 @@ export function SourcedCandidatesView({
   const [engagePayload, setEngagePayload] = useState<string>('');
   const [engageLoading, setEngageLoading] = useState(false);
   const [engageError, setEngageError] = useState<string | null>(null);
-  const [engageApiResponse, setEngageApiResponse] = useState<any>(null);
+  const [engageApiResponse, setEngageApiResponse] = useState<SendBulkInterviewResult | null>(null);
   const [engageCandidateIds, setEngageCandidateIds] = useState<string[]>([]);
 
   // Assess state
@@ -174,8 +177,8 @@ export function SourcedCandidatesView({
       setEngagePayload(data.payload);
       setEngageCandidateIds([candidateId]);
       setIsEngageModalOpen(true);
-    } catch (err: any) {
-      setEngageError(err.message || "Failed to generate payload");
+    } catch (err: unknown) {
+      setEngageError(getErrorMessage(err, "Failed to generate payload"));
     } finally {
       setEngageLoading(false);
     }
@@ -197,8 +200,8 @@ export function SourcedCandidatesView({
       } else {
         setEngageError(data.message || "API returned error status");
       }
-    } catch (err: any) {
-      setEngageError(err.message || "Unknown error");
+    } catch (err: unknown) {
+      setEngageError(getErrorMessage(err, "Unknown error"));
     } finally {
       setEngageLoading(false);
     }

@@ -38,13 +38,18 @@ interface CandidateDetailsModalProps {
   matchScore?: number;
   missingSkills?: string[];
   matchedSkills?: string[];
-  matchScoreDetails?: Record<string, any>;
+  matchScoreDetails?: Record<string, MatchScoreDetail>;
   explainability?: string[];
   jobdivaCandidateId?: string;
   source?: string;
   /** "high_level" when the backend skipped the detailed AI skills match
    *  (JobDiva agent-search results are scored on cheap signals only). */
   scoringMode?: string;
+}
+
+interface MatchScoreDetail {
+  score?: number;
+  weight?: number;
 }
 
 /** Title-case a string: "cloud security engineer" → "Cloud Security Engineer" */
@@ -178,7 +183,7 @@ function CandidateDetailsModalBase({
   const hasDetailedAnalysis =
     (matchedSkills?.length ?? 0) > 0 ||
     (missingSkills?.length ?? 0) > 0 ||
-    Object.values(matchScoreDetails || {}).some((d: any) => d?.weight > 0);
+    Object.values(matchScoreDetails || {}).some((d) => (d.weight ?? 0) > 0);
   // JobDiva-JobAgent rows are never presented as a % — the score ring is
   // replaced by an "Agent match" emblem, the %-based score breakdown stays
   // hidden, and the provenance banner explains the ranking. Keyed on source
@@ -200,7 +205,7 @@ function CandidateDetailsModalBase({
     : null;
 
   const scoreEntries = matchScoreDetails
-    ? Object.entries(matchScoreDetails).filter(([, d]: [string, any]) => d?.weight > 0)
+    ? Object.entries(matchScoreDetails).filter(([, d]) => (d.weight ?? 0) > 0)
     : [];
 
   const topMatches = (matchedSkills || []).slice(0, 8);
@@ -342,7 +347,7 @@ function CandidateDetailsModalBase({
                 <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Score Breakdown</span>
               </div>
-              {scoreEntries.map(([cat, data]: [string, any], i) => (
+              {scoreEntries.map(([cat, data], i) => (
                 <CategoryBar key={i} label={cat} score={data.score ?? 0} weight={data.weight ?? 1} />
               ))}
             </div>

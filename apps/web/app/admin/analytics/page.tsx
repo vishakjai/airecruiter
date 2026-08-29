@@ -28,7 +28,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -318,18 +318,16 @@ export default function AdminAnalyticsPage() {
       setError(null);
       try {
         // Team leads never pass team_id — the backend pins them to their team.
-        const res = await api.adminAnalytics.get(isAdmin ? activeTeamId : null);
+        const res = await api.adminAnalytics.get<AnalyticsData>(isAdmin ? activeTeamId : null);
         if (res && res.status === "success" && res.data) {
           setData(res.data);
           setLiveAccounts(null); // fall back to the fresh snapshot until the next live refresh
         } else {
           setError(res?.message || "Failed to load analytics data.");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading analytics:", err);
-        setError(
-          err?.message || "Access denied or server error loading analytics.",
-        );
+        setError(getErrorMessage(err, "Access denied or server error loading analytics."));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -342,7 +340,7 @@ export default function AdminAnalyticsPage() {
     setIsRefreshingAccounts(true);
     setAccountsError(null);
     try {
-      const res = await api.adminAnalytics.linkedinAccounts();
+      const res = await api.adminAnalytics.linkedinAccounts<LinkedInAccount>();
       if (res && res.status === "success" && res.data?.accounts) {
         setLiveAccounts(res.data.accounts as LinkedInAccount[]);
       } else {
@@ -371,7 +369,7 @@ export default function AdminAnalyticsPage() {
     if (isRoleLoading || !isAdmin) return;
     let cancelled = false;
     api.teams
-      .list()
+      .list<TeamSummary>()
       .then((res) => {
         if (!cancelled && res && res.status === "success" && res.data?.teams) {
           setTeams(res.data.teams as TeamSummary[]);
@@ -512,7 +510,12 @@ export default function AdminAnalyticsPage() {
     liveAccounts ?? data?.linkedin_accounts ?? [];
 
   // Standard pipeline funnel stages aligning with candidate ranking page statuses
-  const pipelineStages = [
+  const pipelineStages: Array<{
+    key: string;
+    label: string;
+    aliases: string[];
+    color?: string;
+  }> = [
     {
       key: "launched",
       label: "Launched Candidates",
@@ -1488,12 +1491,12 @@ export default function AdminAnalyticsPage() {
               </div>
             ) : (
               <div className="space-y-5 my-auto">
-                {pipelineStages.map((stage, stageIdx) => {
+                {pipelineStages.map((stage) => {
                   const count = getStageCount(stage);
                   const percentage = Math.round(
                     (count / totalCandidates) * 100,
                   );
-                  const barColor = (stage as any).color || "bg-primary";
+                  const barColor = stage.color || "bg-primary";
 
                   return (
                     <div key={stage.key} className="space-y-2">

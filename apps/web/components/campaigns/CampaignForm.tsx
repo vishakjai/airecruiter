@@ -313,7 +313,7 @@ export function CampaignForm({
           rows={3}
         />
         <p className="text-xs text-amber-600">
-          Enter only common administrative rules across all roles (e.g., 'W2 only, max rate $80/hr'). Do not enter role-specific tech skills, as these notes are prioritized when generating AI Job Descriptions across child jobs.
+          Enter only common administrative rules across all roles (e.g., ‘W2 only, max rate $80/hr’). Do not enter role-specific tech skills, as these notes are prioritized when generating AI Job Descriptions across child jobs.
         </p>
       </div>
 

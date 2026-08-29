@@ -7,6 +7,65 @@ import { msalInstance } from "@/lib/msal-config";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
+export interface ApiResponse<T> {
+  status?: string;
+  success?: boolean;
+  data?: T;
+  message?: string;
+}
+
+export interface AuthMeResponse {
+  role?: "admin" | "team_lead" | "recruiter";
+  is_admin?: boolean;
+  is_team_lead?: boolean;
+  team_id?: string | null;
+  team_name?: string | null;
+}
+
+export interface ActivityLogApiItem {
+  id: number;
+  phase: string;
+  activity_type: string;
+  activity_subtype?: string;
+  status: string;
+  details?: {
+    questions_completed?: number;
+    answer_count?: number;
+    subject?: string;
+    message_type?: string;
+    old_phase?: string;
+    new_phase?: string;
+    launch_context?: string;
+    session_started_at?: string;
+    status?: string;
+    message?: string;
+    content?: string;
+    phone_number?: string;
+    error?: string;
+  };
+  timestamp: string;
+}
+
+declare global {
+  interface Window {
+    __apiFetchPatched?: boolean;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function stringProperty(value: unknown, key: string): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const property = value[key];
+  return typeof property === "string" ? property : undefined;
+}
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : stringProperty(error, "message") || fallback;
+}
+
 export function getActiveUserEmail(): string | undefined {
   if (typeof window === "undefined") return undefined;
   try {
@@ -16,13 +75,13 @@ export function getActiveUserEmail(): string | undefined {
     if (all && all.length > 0 && all[0].username) {
       return all[0].username;
     }
-  } catch (e) {
+  } catch {
     // ignore if MSAL not initialized yet
   }
   if (process.env.NODE_ENV !== "production") {
     try {
       return localStorage.getItem("dev_user_email") || undefined;
-    } catch (e) {
+    } catch {
       return undefined;
     }
   }
@@ -47,17 +106,15 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
           scopes: ["User.Read"],
           account: activeAccount,
         });
-        let token = tokenResponse?.idToken || tokenResponse?.accessToken;
-        if (!token && (activeAccount as any)?.idToken) {
-          token = (activeAccount as any).idToken;
-        }
+        let token: string | undefined = tokenResponse?.idToken || tokenResponse?.accessToken;
+        token ||= stringProperty(activeAccount, "idToken");
         if (token) {
           headers["Authorization"] = `Bearer ${token}`;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errMsg = strError(err);
         if (
-          err?.name === "InteractionRequiredAuthError" ||
+          stringProperty(err, "name") === "InteractionRequiredAuthError" ||
           errMsg.includes("interaction_required") ||
           errMsg.includes("aadsts160021") ||
           errMsg.includes("login_required")
@@ -66,15 +123,19 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
         }
       }
     }
-  } catch (e) {
+  } catch {
     // ignore if MSAL not initialized
   }
 
   return headers;
 }
 
-function strError(e: any): string {
-  return (e?.message || e?.errorCode || String(e || "")).toLowerCase();
+function strError(e: unknown): string {
+  return (
+    stringProperty(e, "message") ||
+    stringProperty(e, "errorCode") ||
+    String(e || "")
+  ).toLowerCase();
 }
 
 export async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
@@ -99,11 +160,16 @@ export function isNetworkFetchError(e: unknown): boolean {
   return e instanceof TypeError;
 }
 
-if (typeof window !== "undefined" && !(window as any).__apiFetchPatched) {
-  (window as any).__apiFetchPatched = true;
+if (typeof window !== "undefined" && !window.__apiFetchPatched) {
+  window.__apiFetchPatched = true;
   const originalFetch = window.fetch.bind(window);
   window.fetch = async function (input: RequestInfo | URL, init: RequestInit = {}) {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as any)?.url;
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
     if (url && (url.startsWith(API_BASE) || url.includes(API_BASE))) {
       const authHeaders = await getAuthHeaders();
       const existingHeaders = (init.headers || {}) as Record<string, string>;
@@ -172,7 +238,7 @@ async function req<T>(path: string, init: JsonInit = {}): Promise<T> {
       duration_ms: durationMs,
     });
     return res.json() as Promise<T>;
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!trackedError) {
       const ended = typeof performance !== "undefined" ? performance.now() : Date.now();
       const durationMs = Math.round((ended - started) * 100) / 100;
@@ -180,7 +246,7 @@ async function req<T>(path: string, init: JsonInit = {}): Promise<T> {
         path,
         method,
         duration_ms: durationMs,
-        message: error?.message || "unknown_error",
+        message: getErrorMessage(error, "unknown_error"),
       });
     }
     throw error;
@@ -190,69 +256,72 @@ async function req<T>(path: string, init: JsonInit = {}): Promise<T> {
 export const api = {
   jobs: {
     fetch: (body: { job_id: string }) =>
-      req<any>(`/jobs/fetch`, { method: "POST", body }),
+      req<unknown>(`/jobs/fetch`, { method: "POST", body }),
     save: (jobId: string, body: unknown) =>
-      req<any>(`/jobs/${jobId}/save`, { method: "POST", body }),
+      req<unknown>(`/jobs/${jobId}/save`, { method: "POST", body }),
     saveStep: (jobId: string, step: number, body: unknown) =>
-      req<any>(`/jobs/${jobId}/save-step?step=${step}`, { method: "POST", body }),
+      req<unknown>(`/jobs/${jobId}/save-step?step=${step}`, { method: "POST", body }),
     monitor: (jobId: string, body: unknown) =>
-      req<any>(`/jobs/${jobId}/monitor`, { method: "POST", body }),
+      req<unknown>(`/jobs/${jobId}/monitor`, { method: "POST", body }),
     publish: (jobId: string, body: unknown) =>
-      req<any>(`/jobs/${jobId}/publish`, { method: "POST", body }),
+      req<unknown>(`/jobs/${jobId}/publish`, { method: "POST", body }),
     createExternal: (body: unknown) =>
-      req<any>(`/jobs/external/create`, { method: "POST", body }),
-    getDraft: (jobId: string) => req<any>(`/jobs/${jobId}/draft`),
-    getMonitoredData: (jobId: string) => req<any>(`/jobs/${jobId}/monitored-data`),
+      req<unknown>(`/jobs/external/create`, { method: "POST", body }),
+    getDraft: (jobId: string) => req<unknown>(`/jobs/${jobId}/draft`),
+    getMonitoredData: (jobId: string) => req<unknown>(`/jobs/${jobId}/monitored-data`),
     updateBasicInfo: (jobId: string, body: unknown) =>
-      req<any>(`/jobs/${jobId}/basic-info`, { method: "PUT", body }),
+      req<unknown>(`/jobs/${jobId}/basic-info`, { method: "PUT", body }),
   },
   candidates: {
     save: (body: unknown) =>
-      req<any>(`/candidates/save`, { method: "POST", body }),
+      req<unknown>(`/candidates/save`, { method: "POST", body }),
     getResume: (candidateId: string) =>
-      req<any>(`/candidates/${candidateId}/resume`),
+      req<unknown>(`/candidates/${candidateId}/resume`),
     analyze: (body: unknown) =>
-      req<any>(`/candidates/analyze`, { method: "POST", body }),
+      req<unknown>(`/candidates/analyze`, { method: "POST", body }),
     // Streaming endpoint — callers need the raw Response for a ReadableStream.
     searchStreamUrl: `${API_BASE}/candidates/search`,
   },
   manualCandidates: {
     add: (jobRef: string, body: unknown) =>
-      req<any>(`/jobs/${jobRef}/manual-candidate`, { method: "POST", body }),
+      req<unknown>(`/jobs/${jobRef}/manual-candidate`, { method: "POST", body }),
     // Multipart upload — callers pass FormData directly.
     bulkUploadUrl: (jobRef: string) => `${API_BASE}/jobs/${jobRef}/bulk-resumes`,
   },
   chat: {
-    send: (body: unknown) => req<any>(`/chat`, { method: "POST", body }),
+    send: (body: unknown) => req<unknown>(`/chat`, { method: "POST", body }),
   },
   engagement: {
     getActivityLogs: (interviewId: string) =>
-      req<any>(`/api/v1/engagement/interviews/${interviewId}/activity-logs`),
+      req<ApiResponse<{ activities: ActivityLogApiItem[] }>>(
+        `/api/v1/engagement/interviews/${interviewId}/activity-logs`,
+      ),
     getInterviewEvaluation: (interviewId: string) =>
-      req<any>(`/api/v1/engagement/interviews/${interviewId}/evaluation`),
+      req<unknown>(`/api/v1/engagement/interviews/${interviewId}/evaluation`),
     getInterviewScoreSummary: (interviewId: string) =>
-      req<any>(`/api/v1/engagement/interviews/${interviewId}/score-summary`),
+      req<unknown>(`/api/v1/engagement/interviews/${interviewId}/score-summary`),
     getAssessmentData: (interviewId: string) =>
-      req<any>(`/api/v1/engagement/assess/${interviewId}`),
+      req<unknown>(`/api/v1/engagement/assess/${interviewId}`),
   },
   auth: {
-    getMe: () => req<any>(`/api/v1/auth/me`),
+    getMe: () => req<AuthMeResponse>(`/api/v1/auth/me`),
   },
   adminAnalytics: {
-    get: (teamId?: string | null) =>
-      req<any>(`/api/v1/admin/analytics${teamId ? `?team_id=${encodeURIComponent(teamId)}` : ""}`),
-    linkedinAccounts: () => req<any>(`/api/v1/admin/linkedin-accounts`),
+    get: <T>(teamId?: string | null) =>
+      req<ApiResponse<T>>(`/api/v1/admin/analytics${teamId ? `?team_id=${encodeURIComponent(teamId)}` : ""}`),
+    linkedinAccounts: <T>() =>
+      req<ApiResponse<{ accounts: T[] }>>(`/api/v1/admin/linkedin-accounts`),
   },
   launchReport: {
     // `date` is a calendar date in Eastern time (YYYY-MM-DD); omitting it asks
     // the backend for yesterday. Team leads are auto-scoped server-side, so
     // teamId is only meaningful for admins.
-    get: (date?: string | null, teamId?: string | null) => {
+    get: <T>(date?: string | null, teamId?: string | null) => {
       const qs = new URLSearchParams();
       if (date) qs.set("date", date);
       if (teamId) qs.set("team_id", teamId);
       const suffix = qs.toString();
-      return req<any>(`/api/v1/launch-report${suffix ? `?${suffix}` : ""}`);
+      return req<ApiResponse<T>>(`/api/v1/launch-report${suffix ? `?${suffix}` : ""}`);
     },
   },
   noContact: {
@@ -261,12 +330,12 @@ export const api = {
     companies: () => req<{ companies: string[]; editable: boolean }>(`/api/v1/no-contact/companies`),
   },
   teams: {
-    list: () => req<any>(`/api/v1/teams`),
+    list: <T>() => req<ApiResponse<{ teams: T[] }>>(`/api/v1/teams`),
     create: (body: { name: string; lead_emails: string; member_emails: string }) =>
-      req<any>(`/api/v1/teams`, { method: "POST", body }),
+      req<ApiResponse<unknown>>(`/api/v1/teams`, { method: "POST", body }),
     update: (teamId: string, body: { name: string; lead_emails: string; member_emails: string }) =>
-      req<any>(`/api/v1/teams/${encodeURIComponent(teamId)}`, { method: "PUT", body }),
+      req<ApiResponse<unknown>>(`/api/v1/teams/${encodeURIComponent(teamId)}`, { method: "PUT", body }),
     remove: (teamId: string) =>
-      req<any>(`/api/v1/teams/${encodeURIComponent(teamId)}`, { method: "DELETE" }),
+      req<ApiResponse<unknown>>(`/api/v1/teams/${encodeURIComponent(teamId)}`, { method: "DELETE" }),
   },
 };

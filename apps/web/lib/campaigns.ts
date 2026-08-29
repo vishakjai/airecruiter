@@ -78,6 +78,11 @@ export interface BulkAddResponse {
   results: BulkAddJobResult[];
 }
 
+export interface CampaignScreenQuestion {
+  question_text: string;
+  pass_criteria?: string | null;
+}
+
 export interface Campaign {
   campaign_id: string;
   name: string;
@@ -99,7 +104,7 @@ export interface Campaign {
   template_enhanced_title?: string | null;
   template_ai_description?: string | null;
   template_rubric?: Record<string, unknown> | null;
-  template_screen_questions?: unknown[];
+  template_screen_questions?: CampaignScreenQuestion[];
   template_sourcing_filters?: Record<string, unknown> | null;
   pair_enabled: boolean;
   status: string;
@@ -132,7 +137,7 @@ export interface CampaignCreatePayload {
   template_enhanced_title?: string;
   template_ai_description?: string;
   template_rubric?: Record<string, unknown> | null;
-  template_screen_questions?: unknown[];
+  template_screen_questions?: CampaignScreenQuestion[];
   template_sourcing_filters?: Record<string, unknown> | null;
 }
 

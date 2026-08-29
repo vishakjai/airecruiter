@@ -41,7 +41,7 @@ export function CampaignTemplateCard({
   const domain = (rubric.domain as Record<string, unknown>[]) ?? [];
   const customerReqs = (rubric.customer_requirements as Record<string, unknown>[]) ?? [];
   const otherReqs = (rubric.other_requirements as Record<string, unknown>[]) ?? [];
-  const questions = (campaign.template_screen_questions as Record<string, unknown>[]) ?? [];
+  const questions = campaign.template_screen_questions ?? [];
 
   const hasData =
     Boolean(campaign.template_enhanced_title) ||

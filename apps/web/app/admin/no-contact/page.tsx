@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Building2, RefreshCw, ShieldAlert, ShieldOff } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,9 @@ export default function AdminNoContactPage() {
     try {
       const res = await api.noContact.companies();
       setCompanies(Array.isArray(res?.companies) ? res.companies : []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading no-contact companies:", err);
-      setError(err?.message || "Failed to load the no-contact list.");
+      setError(getErrorMessage(err, "Failed to load the no-contact list."));
     } finally {
       setIsLoading(false);
     }
