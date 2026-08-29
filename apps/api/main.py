@@ -350,6 +350,30 @@ teams_router = _safe_import("teams")
 # cheap fence around that whole class of misconfig.
 app = FastAPI(title="Hoonr.ai API", lifespan=lifespan, redirect_slashes=False)
 
+
+def _database_healthcheck() -> None:
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+    finally:
+        conn.close()
+
+
+@app.get("/health", include_in_schema=False)
+async def healthcheck():
+    """Container readiness endpoint with a real database round trip."""
+    try:
+        await asyncio.wait_for(
+            asyncio.to_thread(_database_healthcheck),
+            timeout=3,
+        )
+    except Exception as exc:
+        logger.error("healthcheck_database_failed: %s", exc)
+        raise HTTPException(status_code=503, detail="database unavailable") from exc
+    return {"status": "ok", "database": "ok"}
+
 if _newrelic_enabled():
     try:
         import newrelic.agent
