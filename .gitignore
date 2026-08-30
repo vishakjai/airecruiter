@@ -25,6 +25,7 @@ apps/api/monitored_jobs.json
 scripts/*.log
 *.sql
 *.sql.gz
+!deployment/docker/*.sql
 
 # Local probe / POC artifacts kept off-repo.
 apps/api/tmp/

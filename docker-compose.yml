@@ -1,46 +1,106 @@
-version: '3.8'
+name: pair
 
 services:
-  web:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-      target: dev
-    ports:
-      - "4200:3000"
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+      POSTGRES_DB: pair
+      POSTGRES_USER: pair
+      POSTGRES_PASSWORD: pair
+    ports:
+      - "5433:5432"
     volumes:
-      - ./apps/web:/app
-      - /app/node_modules
-      - ~/.config/gcloud:/root/.config/gcloud # Mount Host GCloud Creds
-    command: npm run dev
-    depends_on:
-      - api
+      - pair_postgres_data:/var/lib/postgresql/data
+      - ./deployment/docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-pair.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pair -d pair"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - pair_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "8000:8000"
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
     env_file:
-      - ./apps/api/.env
-    volumes:
-      - ./apps/api:/app
-      - ~/.config/gcloud:/root/.config/gcloud
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - path: ./deployment/docker/api.env
+      - path: ./apps/api/.env
+        required: false
+    environment:
+      ENV: local
+      PORT: 8000
+      DATABASE_URL: postgresql://pair:pair@postgres:5432/pair
+      DB_USER: pair
+      DB_PASSWORD: pair
+      DB_NAME: pair
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_ORIGINS: http://localhost:4200
+      APP_BASE_URL: http://localhost:4200
+      DEV_USER_EMAIL: developer@pair.local
+      ADMIN_EMAILS: developer@pair.local
+      AMPLITUDE_TRACK_LOGS: "false"
+      LOG_FORMAT: text
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
 
-  redis:
-    image: redis:alpine
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_DISABLE_SSO: "true"
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "4200:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
 volumes:
-  redis_data:
+  pair_postgres_data:
+  pair_redis_data:

@@ -1,0 +1,18 @@
+# Tables the code queries that no CREATE TABLE in this repo declares.
+# Each line is known drift, not an approval: the goal is an empty file.
+# Regenerate deliberately with: python scripts/check_schema_drift.py --update-baseline
+candidate_education
+candidate_positions
+candidate_profiles
+candidate_skills
+draft_progress_overview
+job_competencies
+job_drafts
+job_extraction_logs
+job_gating_rules
+job_requirements
+job_seniority_signals
+jobs
+skill_edges
+skill_nodes
+sourced_candidate_jobs
